@@ -28,19 +28,48 @@ func (h *TODOHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		req := &model.CreateTODORequest{}
 		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 			log.Println(err)
+			return
 		}
 
 		if req.Subject == "" {
 			w.WriteHeader(400)
-		} else {
-			res, err := h.Create(r.Context(), req)
-			if err != nil {
-				log.Println(err)
-			}
+			return
+		}
 
-			if err = json.NewEncoder(w).Encode(res); err != nil {
-				log.Println(err)
+		res, err := h.Create(r.Context(), req)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		if err = json.NewEncoder(w).Encode(res); err != nil {
+			log.Println(err)
+			return
+		}
+	} else if r.Method == http.MethodPut {
+		req := &model.UpdateTODORequest{}
+		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+			log.Println(err)
+			return
+		}
+
+		if req.ID == 0 || req.Subject == "" {
+			w.WriteHeader(400)
+			return
+		}
+
+		res, err := h.Update(r.Context(), req)
+		if err != nil {
+			log.Println(err)
+			if err.Error() == "Error: Not Found" {
+				w.WriteHeader(404)
 			}
+			return
+		}
+
+		if err = json.NewEncoder(w).Encode(res); err != nil {
+			log.Println(err)
+			return
 		}
 	}
 }
@@ -59,8 +88,8 @@ func (h *TODOHandler) Read(ctx context.Context, req *model.ReadTODORequest) (*mo
 
 // Update handles the endpoint that updates the TODO.
 func (h *TODOHandler) Update(ctx context.Context, req *model.UpdateTODORequest) (*model.UpdateTODOResponse, error) {
-	_, _ = h.svc.UpdateTODO(ctx, 0, "", "")
-	return &model.UpdateTODOResponse{}, nil
+	todo, err := h.svc.UpdateTODO(ctx, req.ID, req.Subject, req.Description)
+	return &model.UpdateTODOResponse{TODO: *todo}, err
 }
 
 // Delete handles the endpoint that deletes the TODOs.
