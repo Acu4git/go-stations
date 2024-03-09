@@ -2,6 +2,9 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
+	"log"
+	"net/http"
 
 	"github.com/TechBowl-japan/go-stations/model"
 	"github.com/TechBowl-japan/go-stations/service"
@@ -19,10 +22,33 @@ func NewTODOHandler(svc *service.TODOService) *TODOHandler {
 	}
 }
 
+func (h *TODOHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// r.Method == "Post" ではなく r.Method == "POST" にしないといけない
+	if r.Method == http.MethodPost {
+		req := &model.CreateTODORequest{}
+		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+			log.Println(err)
+		}
+
+		if req.Subject == "" {
+			w.WriteHeader(400)
+		} else {
+			res, err := h.Create(r.Context(), req)
+			if err != nil {
+				log.Println(err)
+			}
+
+			if err = json.NewEncoder(w).Encode(res); err != nil {
+				log.Println(err)
+			}
+		}
+	}
+}
+
 // Create handles the endpoint that creates the TODO.
 func (h *TODOHandler) Create(ctx context.Context, req *model.CreateTODORequest) (*model.CreateTODOResponse, error) {
-	_, _ = h.svc.CreateTODO(ctx, "", "")
-	return &model.CreateTODOResponse{}, nil
+	todo, err := h.svc.CreateTODO(ctx, req.Subject, req.Description)
+	return &model.CreateTODOResponse{TODO: *todo}, err
 }
 
 // Read handles the endpoint that reads the TODOs.
