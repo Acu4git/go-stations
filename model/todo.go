@@ -19,7 +19,7 @@ type (
 	}
 	// A CreateTODOResponse expresses ...
 	CreateTODOResponse struct {
-		TODO TODO `json:"todo"`
+		TODO *TODO `json:"todo"`
 	}
 
 	// A ReadTODORequest expresses ...
@@ -29,7 +29,7 @@ type (
 	}
 	// A ReadTODOResponse expresses ...
 	ReadTODOResponse struct {
-		TODOs []TODO `json:"todos"`
+		TODOs []*TODO `json:"todos"`
 	}
 
 	// A UpdateTODORequest expresses ...
@@ -40,11 +40,15 @@ type (
 	}
 	// A UpdateTODOResponse expresses ...
 	UpdateTODOResponse struct {
-		TODO TODO `json:"todo"`
+		TODO *TODO `json:"todo"`
 	}
 
 	// A DeleteTODORequest expresses ...
-	DeleteTODORequest struct{}
+	DeleteTODORequest struct {
+		IDs []int64 `json:"ids"`
+	}
 	// A DeleteTODOResponse expresses ...
-	DeleteTODOResponse struct{}
+	DeleteTODOResponse struct {
+		TODO *TODO `json:"todo"` //未定義でも問題ないっぽい(2023/3/12)
+	}
 )

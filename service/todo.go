@@ -3,7 +3,9 @@ package service
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
+	"strings"
 
 	"github.com/TechBowl-japan/go-stations/model"
 )
@@ -39,9 +41,10 @@ func (s *TODOService) CreateTODO(ctx context.Context, subject, description strin
 		return nil, err
 	}
 
-	todo := &model.TODO{}
-	todo.ID = id
-	err = s.db.QueryRowContext(ctx, confirm, id).Scan(&todo.Subject, &todo.Description, &todo.CreatedAt, &todo.UpdatedAt)
+	todo := &model.TODO{ID: id}
+
+	row := s.db.QueryRowContext(ctx, confirm, id)
+	err = row.Scan(&todo.Subject, &todo.Description, &todo.CreatedAt, &todo.UpdatedAt)
 	if err != nil {
 		log.Println(err)
 		return nil, err
@@ -57,7 +60,57 @@ func (s *TODOService) ReadTODO(ctx context.Context, prevID, size int64) ([]*mode
 		readWithID = `SELECT id, subject, description, created_at, updated_at FROM todos WHERE id < ? ORDER BY id DESC LIMIT ?`
 	)
 
-	return nil, nil
+	todos := []*model.TODO{}
+
+	if prevID == 0 {
+		//prevIDの指定なし
+		rows, err := s.db.QueryContext(ctx, read, size)
+		if err != nil {
+			log.Println(err)
+			return nil, err
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			todo := &model.TODO{}
+			err := rows.Scan(&todo.ID, &todo.Subject, &todo.Description, &todo.CreatedAt, &todo.UpdatedAt)
+			if err != nil {
+				log.Println(err)
+				return nil, err
+			}
+			todos = append(todos, todo)
+			//なぜか警告文が出る．静的解析ツールによる誤検出？(2023/3/11)
+			// -> （解決）関数の最後に返り値としてtodosを返してやると警告文がなくなる
+		}
+		if err := rows.Err(); err != nil {
+			log.Println(err)
+			return nil, err
+		}
+	} else {
+		//prevIDの指定あり
+		rowsWithID, err := s.db.QueryContext(ctx, readWithID, prevID, size)
+		if err != nil {
+			log.Println(err)
+			return nil, err
+		}
+		defer rowsWithID.Close()
+
+		for rowsWithID.Next() {
+			todo := &model.TODO{}
+			err := rowsWithID.Scan(&todo.ID, &todo.Subject, &todo.Description, &todo.CreatedAt, &todo.UpdatedAt)
+			if err != nil {
+				log.Println(err)
+				return nil, err
+			}
+			todos = append(todos, todo)
+		}
+		if err := rowsWithID.Err(); err != nil {
+			log.Println(err)
+			return nil, err
+		}
+	}
+
+	return todos, nil
 }
 
 // UpdateTODO updates the TODO on DB.
@@ -95,7 +148,35 @@ func (s *TODOService) UpdateTODO(ctx context.Context, id int64, subject, descrip
 
 // DeleteTODO deletes TODOs on DB by ids.
 func (s *TODOService) DeleteTODO(ctx context.Context, ids []int64) error {
+	if len(ids) == 0 {
+		return nil
+	}
+
 	const deleteFmt = `DELETE FROM todos WHERE id IN (?%s)`
+
+	idSlice := make([]interface{}, len(ids))
+	for i, num := range ids {
+		idSlice[i] = num
+	}
+	//以下のコードは誤用(makeでスライスを作った場合，空のスライスではなく0で初期化されたスライスが渡される)
+	// for _,num:=range ids {
+	// 	idSlice = append(idSlice, num)
+	// }
+
+	result, err := s.db.ExecContext(ctx, fmt.Sprintf(deleteFmt, strings.Repeat(",?", len(ids)-1)), idSlice...)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	num, err := result.RowsAffected()
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	if num == 0 {
+		return &model.ErrNotFound{}
+	}
 
 	return nil
 }
