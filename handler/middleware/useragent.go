@@ -3,7 +3,6 @@ package middleware
 import (
 	"context"
 	"net/http"
-	"reflect"
 
 	"github.com/mileusna/useragent"
 )
@@ -15,23 +14,21 @@ func SetUserAgent(r *http.Request) context.Context {
 	ctx := r.Context()
 	//User-Agentの情報を解析して構造体にまとめる
 	ua := useragent.Parse(r.UserAgent())
-	//uaの型情報
-	uaTypeInfo := reflect.TypeOf(ua)
-	//uaの各フィールドの値の情報をもつ
-	uaValueInfo := reflect.ValueOf(ua)
-	//debug
-	// fmt.Println("uaTypeInfo:", uaTypeInfo.Name())
-	// fmt.Println("uaValueInfo:", uaValueInfo)
-	// fmt.Println("-----------------------------------------------")
-	for i := 0; i < uaTypeInfo.NumField(); i++ {
-		k := contextKey(uaTypeInfo.Field(i).Name)
-		v := uaValueInfo.Field(i)
-		ctx = context.WithValue(ctx, k, v)
-		//debug
-		// fmt.Println("Field", i, "name :", k)
-		// fmt.Println("Field", i, "value:", v)
-		// fmt.Println("-----------------------------------------------")
-	}
+
+	ctx = context.WithValue(ctx, contextKey("VersionNo"), ua.VersionNo)
+	ctx = context.WithValue(ctx, contextKey("OSVersionNo"), ua.OSVersionNo)
+	ctx = context.WithValue(ctx, contextKey("URL"), ua.URL)
+	ctx = context.WithValue(ctx, contextKey("String"), ua.String)
+	ctx = context.WithValue(ctx, contextKey("Name"), ua.Name)
+	ctx = context.WithValue(ctx, contextKey("Version"), ua.Version)
+	ctx = context.WithValue(ctx, contextKey("OS"), ua.OS)
+	ctx = context.WithValue(ctx, contextKey("OSVersion"), ua.OSVersion)
+	ctx = context.WithValue(ctx, contextKey("Device"), ua.Device)
+	ctx = context.WithValue(ctx, contextKey("Mobile"), ua.Mobile)
+	ctx = context.WithValue(ctx, contextKey("Tablet"), ua.Tablet)
+	ctx = context.WithValue(ctx, contextKey("Desktop"), ua.Desktop)
+	ctx = context.WithValue(ctx, contextKey("Bot"), ua.Bot)
+
 	return ctx
 }
 
