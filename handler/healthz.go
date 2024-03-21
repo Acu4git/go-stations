@@ -2,11 +2,9 @@ package handler
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 
-	"github.com/TechBowl-japan/go-stations/handler/middleware"
 	"github.com/TechBowl-japan/go-stations/model"
 )
 
@@ -26,7 +24,4 @@ func (h *HealthzHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println(err)
 	}
-
-	ctx := middleware.SetUserAgent(r)
-	fmt.Println("Client OS:", middleware.GetUserAgent(ctx, "OS"))
 }

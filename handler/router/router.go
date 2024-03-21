@@ -14,6 +14,7 @@ func NewRouter(todoDB *sql.DB) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	healthzHandler := handler.NewHealthzHandler()
+	authHealthzHandler := middleware.BasicAuthMiddleware(healthzHandler)
 
 	todoService := service.NewTODOService(todoDB)
 	todoHandler := handler.NewTODOHandler(todoService)
@@ -21,13 +22,17 @@ func NewRouter(todoDB *sql.DB) *http.ServeMux {
 	doPanicHandler := handler.NewDoPanicHandler()
 	recoverDoPanicHandler := middleware.Recovery(doPanicHandler)
 
-	accessLogHandler := handler.NewAccessLogHandler()
+	interactiveHandler := handler.NewInteractiveHandler()
+	authInteractiveHandler := middleware.BasicAuthMiddleware(interactiveHandler)
 
-	mux.Handle("/healthz", healthzHandler)
+	getAccessLogHandler := middleware.AccessLog(interactiveHandler)
+	accessLogHandler := middleware.SetOSMiddleware(getAccessLogHandler)
+
+	mux.Handle("/healthz", authHealthzHandler)
 	mux.Handle("/todos", todoHandler)
-	// mux.Handle("/do-panic", doPanicHandler)
 	mux.Handle("/do-panic", recoverDoPanicHandler)
 	mux.Handle("/access_log", accessLogHandler)
+	mux.Handle("/interactive", authInteractiveHandler)
 
 	return mux
 }

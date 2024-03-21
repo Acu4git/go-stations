@@ -33,8 +33,11 @@ func SetUserAgent(r *http.Request) context.Context {
 }
 
 // 第1引数にcontext，第2引数に取得したいUser-Agentのフィールド名を文字列で渡す
+// GetDeviceやGetOSにすべき（型の統一のため）
 func GetUserAgent(ctx context.Context, field string) interface{} {
 	//contextからvalueを抽出する際にもkeyをcontextKey型でキャストするべきか
 	k := contextKey(field)
 	return ctx.Value(k)
 }
+
+//ValueをミドルウェアからのみGetできるようにするために，引数にはctxだけを与えるべき
