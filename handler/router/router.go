@@ -28,11 +28,14 @@ func NewRouter(todoDB *sql.DB) *http.ServeMux {
 	getAccessLogHandler := middleware.AccessLog(interactiveHandler)
 	accessLogHandler := middleware.SetOSMiddleware(getAccessLogHandler)
 
+	gracefulHandler := handler.NewGracefulHandler()
+
 	mux.Handle("/healthz", authHealthzHandler)
 	mux.Handle("/todos", todoHandler)
 	mux.Handle("/do-panic", recoverDoPanicHandler)
 	mux.Handle("/access_log", accessLogHandler)
 	mux.Handle("/interactive", authInteractiveHandler)
+	mux.Handle("/graceful", gracefulHandler)
 
 	return mux
 }
